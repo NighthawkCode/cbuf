@@ -20,11 +20,11 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int8_t&
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = int8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
-    val = int8_t(o);
+  } else if (o.type() == Hjson::Type::Double) {
+    val = int8_t(o.operator char());
     return true;
   }
   return false;
@@ -36,10 +36,10 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int16_t
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = int16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = int16_t(o);
     return true;
   }
@@ -52,10 +52,10 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int32_t
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = std::atoi(o);
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = int32_t(o);
     return true;
   }
@@ -68,10 +68,10 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int64_t
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = std::atoll(o);
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = int64_t(o);
     return true;
   }
@@ -84,10 +84,10 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint8_
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint8_t(o);
     return true;
   }
@@ -100,10 +100,10 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint16
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint16_t(o);
     return true;
   }
@@ -116,10 +116,10 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint32
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint32_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint32_t(o);
     return true;
   }
@@ -132,10 +132,10 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint64
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint64_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint64_t(o);
     return true;
   }
@@ -148,10 +148,10 @@ bool get_member_float(const Hjson::Value& doc, const std::string& objName, float
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = float(std::atof(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = float(o);
     return true;
   }
@@ -164,10 +164,10 @@ bool get_member_double(const Hjson::Value& doc, const std::string& objName, doub
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = std::atof(o);
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = o;
     return true;
   }
@@ -180,10 +180,10 @@ bool get_member_bool(const Hjson::Value& doc, const std::string& objName, bool& 
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = o == std::string("true");
     return true;
-  } else if (o.type() == Hjson::Value::BOOL) {
+  } else if (o.type() == Hjson::Type::Bool) {
     val = o.operator bool();
     return true;
   }
@@ -196,14 +196,14 @@ bool get_member_bool_relaxed(const Hjson::Value& doc, const std::string& objName
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = o == std::string("true");
     return true;
-  } else if (o.type() == Hjson::Value::BOOL) {
+  } else if (o.type() == Hjson::Type::Bool) {
     val = o.operator bool();
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
-    val = !(std::floor(o) == 0);
+  } else if (o.type() == Hjson::Type::Double) {
+    val = !(std::floor(o.operator double()) == 0);
     return true;
   }
   return false;
@@ -215,8 +215,8 @@ bool get_member_string(const Hjson::Value& doc, const std::string& objName, std:
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
-    val = o.operator const std::string();
+  if (o.type() == Hjson::Type::String) {
+    val = o.operator std::string();
     return true;
   }
   return false;
@@ -227,11 +227,11 @@ bool get_value_int(const Hjson::Value& o, int8_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = int8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
-    val = int8_t(o);
+  } else if (o.type() == Hjson::Type::Double) {
+    val = int8_t(o.operator char());
     return true;
   }
   return false;
@@ -242,10 +242,10 @@ bool get_value_int(const Hjson::Value& o, int16_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = int16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = int16_t(o);
     return true;
   }
@@ -257,10 +257,10 @@ bool get_value_int(const Hjson::Value& o, int32_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = std::atoi(o);
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = int32_t(o);
     return true;
   }
@@ -272,10 +272,10 @@ bool get_value_int(const Hjson::Value& o, int64_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = std::atoll(o);
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = int64_t(o);
     return true;
   }
@@ -287,10 +287,10 @@ bool get_value_uint(const Hjson::Value& o, uint8_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint8_t(o);
     return true;
   }
@@ -302,10 +302,10 @@ bool get_value_uint(const Hjson::Value& o, uint16_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint16_t(o);
     return true;
   }
@@ -317,10 +317,10 @@ bool get_value_uint(const Hjson::Value& o, uint32_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint32_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint32_t(o);
     return true;
   }
@@ -332,10 +332,10 @@ bool get_value_uint(const Hjson::Value& o, uint64_t& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = uint64_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = uint64_t(o);
     return true;
   }
@@ -347,10 +347,10 @@ bool get_value_float(const Hjson::Value& o, float& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = float(std::atof(o));
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = float(o);
     return true;
   }
@@ -362,10 +362,10 @@ bool get_value_double(const Hjson::Value& o, double& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = std::atof(o);
     return true;
-  } else if (o.type() == Hjson::Value::DOUBLE) {
+  } else if (o.type() == Hjson::Type::Double) {
     val = o;
     return true;
   }
@@ -377,10 +377,10 @@ bool get_value_bool(const Hjson::Value& o, bool& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
+  if (o.type() == Hjson::Type::String) {
     val = o == std::string("true");
     return true;
-  } else if (o.type() == Hjson::Value::BOOL) {
+  } else if (o.type() == Hjson::Type::Bool) {
     val = o.operator bool();
     return true;
   }
@@ -392,8 +392,8 @@ bool get_value_string(const Hjson::Value& o, std::string& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::STRING) {
-    val = o.operator const std::string();
+  if (o.type() == Hjson::Type::String) {
+    val = o.operator std::string();
     return true;
   }
   return false;
@@ -404,7 +404,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<int8_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -427,7 +427,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<int16_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -450,7 +450,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<int32_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -473,7 +473,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<int64_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -496,7 +496,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<uint8_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -519,7 +519,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<uint16_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -542,7 +542,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<uint32_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -565,7 +565,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<uint64_t>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -588,7 +588,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<float>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -611,7 +611,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<double>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -634,7 +634,7 @@ bool get_value_bool_deque(const Hjson::Value& o, std::deque<bool>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 
@@ -657,7 +657,7 @@ bool get_value_vector(const Hjson::Value& o, std::vector<std::string>& val) {
     return false;
   }
 
-  if (o.type() == Hjson::Value::VECTOR) {
+  if (o.type() == Hjson::Type::Vector) {
     size_t len = o.size();
     val.resize(len);
 

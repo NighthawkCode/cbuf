@@ -64,8 +64,11 @@ void ULogger::setLogPath(const std::string& path) {
 
 std::string ULogger::getLogPath() const { return outputdir; }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-identifier"
 // Glibc provides this
 extern char* __progname;
+#pragma clang diagnostic pop
 
 static void name_thread() {
   char thread_name[16] = {};

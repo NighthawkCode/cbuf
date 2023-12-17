@@ -217,27 +217,27 @@ class cbuf_istream {
   bool consume_on_deserialize = true;
   std::string fname_ = "";
 
-  uint64_t __get_next_hash() const {
+  uint64_t internal_get_next_hash() const {
     const cbuf_preamble* pre = (const cbuf_preamble*)ptr;
     return pre->hash;
   }
 
-  uint32_t __get_next_size() const {
+  uint32_t internal_get_next_size() const {
     const cbuf_preamble* pre = (const cbuf_preamble*)ptr;
     return pre->size();
   }
 
-  uint8_t __get_next_variant() const {
+  uint8_t internal_get_next_variant() const {
     const cbuf_preamble* pre = (const cbuf_preamble*)ptr;
     return pre->variant();
   }
 
-  double __get_next_timestamp() const {
+  double internal_get_next_timestamp() const {
     const cbuf_preamble* pre = (const cbuf_preamble*)ptr;
     return pre->packet_timest;
   }
 
-  bool __check_next_preamble() const {
+  bool internal_check_next_preamble() const {
     const cbuf_preamble* pre = (const cbuf_preamble*)ptr;
     return pre->magic == CBUF_MAGIC;
   }
@@ -365,7 +365,7 @@ public:
     if (consume_internal()) {
       return check_next_preamble();
     }
-    return __check_next_preamble();
+    return internal_check_next_preamble();
   }
 
   // Are there more objects on the stream?
@@ -393,12 +393,12 @@ public:
 
   bool skip_corrupted() {
     if (empty()) return true;
-    if (__check_next_preamble() && (__get_next_size() > 0)) return true;
+    if (internal_check_next_preamble() && (internal_get_next_size() > 0)) return true;
 
     while (rem_size >= sizeof(cbuf_preamble)) {
       ptr += 1;
       rem_size -= 1;
-      if (__check_next_preamble() && (__get_next_size() > 0)) return true;
+      if (internal_check_next_preamble() && (internal_get_next_size() > 0)) return true;
     }
     ptr += rem_size;
     rem_size = 0;

@@ -23,7 +23,7 @@ typedef struct {
 
 // --------------------------------------------------------------------------
 
-static bool _convert_iter(PyObject* obj, PyObject** it) {
+static bool s_convert_iter(PyObject* obj, PyObject** it) {
   PyObject* tmp = PyObject_GetIter(obj);
   if (tmp == NULL) return false;
 
@@ -31,7 +31,7 @@ static bool _convert_iter(PyObject* obj, PyObject** it) {
   return true;
 }
 
-static bool _convert_optional_size(PyObject* obj, Py_ssize_t* s) {
+static bool s_convert_optional_size(PyObject* obj, Py_ssize_t* s) {
   if (obj == Py_None) return true;
 
   PyObject* n = PyNumber_Index(obj);

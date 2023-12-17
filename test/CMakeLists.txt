@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13.0)
 include(BuildCbuf)
 include(FetchDependency)
 
-fetch_dependency(gtest "https://github.com/google/googletest.git" "8a6feabf04bec8fb125e0df0ad1195c42350725f")
+fetch_dependency(gtest "https://github.com/google/googletest.git" "v1.14.0")
 
 build_cbuf(NAME test_cbuf_samples MSG_FILES samples/image.cbuf samples/inctype.cbuf)
 

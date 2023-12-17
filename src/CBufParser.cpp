@@ -357,7 +357,7 @@ bool process_element_json(const ast_element* elem, const u8*& bin_buffer, size_t
     assert(elem->type != TYPE_CUSTOM);
 
     // This is an array
-    Hjson::Value arr(Hjson::Value::VECTOR);
+    Hjson::Value arr(Hjson::Type::Vector);
 
     for (int i = 0; i < array_size; i++) {
       val = *(const T*)bin_buffer;
@@ -383,7 +383,7 @@ bool process_element_json(const ast_element* elem, const u8*& bin_buffer, size_t
 bool process_element_string_json(const ast_element* elem, const u8*& bin_buffer, size_t& buf_size,
                                  Hjson::Value& jval, bool dofill) {
   if (elem->array_suffix) {
-    Hjson::Value arr(Hjson::Value::VECTOR);
+    Hjson::Value arr(Hjson::Type::Vector);
     u32 array_size;
     if (!processArraySize(elem, bin_buffer, buf_size, array_size)) {
       return false;
@@ -424,7 +424,7 @@ bool process_element_string_json(const ast_element* elem, const u8*& bin_buffer,
 bool process_element_short_string_json(const ast_element* elem, const u8*& bin_buffer, size_t& buf_size,
                                        Hjson::Value& jval, bool dofill) {
   if (elem->array_suffix) {
-    Hjson::Value arr(Hjson::Value::VECTOR);
+    Hjson::Value arr(Hjson::Type::Vector);
     u32 array_size;
     if (!processArraySize(elem, bin_buffer, buf_size, array_size)) {
       return false;
@@ -1407,7 +1407,7 @@ bool CBufParser::FillHjsonInternal(const ast_struct* st, Hjson::Value& val, cons
               success = false;
               return false;
             }
-            Hjson::Value arr(Hjson::Value::VECTOR);
+            Hjson::Value arr(Hjson::Type::Vector);
             for (int a_idx = 0; a_idx < array_size; a_idx++) {
               Hjson::Value inner;
               FillHjsonInternal(inst, inner, next_ename, dofill);

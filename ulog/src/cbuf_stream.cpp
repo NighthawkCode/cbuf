@@ -162,8 +162,8 @@ bool cbuf_ostream::merge_packet(cbuf_istream* cis, const std::vector<std::string
                                 bool filter_positive, double earlytime, double latetime) {
   bool ret;
   bool isMeta = false;
-  auto hash = cis->__get_next_hash();
-  auto nsize = cis->__get_next_size();
+  auto hash = cis->internal_get_next_hash();
+  auto nsize = cis->internal_get_next_size();
 
   if (hash == cbufmsg::metadata::TYPE_HASH) {
     cbufmsg::metadata mdata;
@@ -200,7 +200,7 @@ bool cbuf_ostream::merge_packet(cbuf_istream* cis, const std::vector<std::string
 
   if (!isMeta) {
     // Time filters do not apply to metadata messages
-    double packet_time = cis->__get_next_timestamp();
+    double packet_time = cis->internal_get_next_timestamp();
     if ((packet_time < earlytime) || (packet_time > latetime)) {
       // not an error, just skip
       cis->updatePtrAndSize(nsize);
@@ -237,7 +237,7 @@ bool cbuf_ostream::merge(const std::vector<cbuf_istream*>& inputs, const std::ve
     for (auto& ci : inputs) {
       // skip inputs that have no more data
       if (ci->empty()) continue;
-      double ci_ts = ci->__get_next_timestamp();
+      double ci_ts = ci->internal_get_next_timestamp();
       if ((early_ts < 0) || (ci_ts < early_ts)) {
         early_ts = ci_ts;
         cis = ci;
@@ -263,9 +263,9 @@ bool cbuf_istream::consume_internal() {
   bool ret;
   if (empty()) return false;
 
-  auto hash = __get_next_hash();
-  auto nsize = __get_next_size();
-  if (!__check_next_preamble()) return false;
+  auto hash = internal_get_next_hash();
+  auto nsize = internal_get_next_size();
+  if (!internal_check_next_preamble()) return false;
 
   if (hash == cbufmsg::metadata::TYPE_HASH) {
     cbufmsg::metadata mdata;
@@ -288,8 +288,8 @@ const char* cbuf_istream::get_or_search_string_for_hash(uint64_t hash) {
   auto old_ptr = ptr;
   auto old_size = rem_size;
   while (!empty()) {
-    auto msghash = __get_next_hash();
-    auto nsize = __get_next_size();
+    auto msghash = internal_get_next_hash();
+    auto nsize = internal_get_next_size();
 
     if (msghash == cbufmsg::metadata::TYPE_HASH) {
       cbufmsg::metadata mdata;

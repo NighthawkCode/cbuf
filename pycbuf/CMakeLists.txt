@@ -11,6 +11,6 @@ target_link_libraries(pycbuf Python3::Module cbuf_parse uloglib_static)
 # Remove the "lib" prefix from the output file name
 set_target_properties(pycbuf PROPERTIES PREFIX "")
 
-target_compile_options(pycbuf PRIVATE -Wno-unused-function)
+target_compile_options(pycbuf PRIVATE -Wno-unused-function -Wno-reserved-identifier)
 
 install(TARGETS pycbuf DESTINATION pycbuf)

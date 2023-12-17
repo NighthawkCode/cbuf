@@ -757,12 +757,12 @@ void CPrinter::print(ast_struct* st) {
     buffer->print("char *encode%s() const\n", naked_suffix);
     buffer->print("{\n");
     buffer->increase_ident();
-    buffer->print("size_t __struct_size = encode_size();\n");
+    buffer->print("size_t gen_struct_size = encode_size();\n");
     if (!st->naked) {
-      buffer->print("preamble.setSize(uint32_t(__struct_size));\n");
+      buffer->print("preamble.setSize(uint32_t(gen_struct_size));\n");
     }
-    buffer->print("char *data = reinterpret_cast<char *>(malloc(__struct_size));\n");
-    buffer->print("encode%s(data, __struct_size);\n", naked_suffix);
+    buffer->print("char *data = reinterpret_cast<char *>(malloc(gen_struct_size));\n");
+    buffer->print("encode%s(data, gen_struct_size);\n", naked_suffix);
     buffer->print("return data;\n");
     buffer->decrease_ident();
     buffer->print("}\n\n");

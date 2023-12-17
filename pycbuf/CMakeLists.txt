@@ -14,3 +14,11 @@ set_target_properties(pycbuf PROPERTIES PREFIX "")
 target_compile_options(pycbuf PRIVATE -Wno-unused-function -Wno-reserved-identifier)
 
 install(TARGETS pycbuf DESTINATION pycbuf)
+
+add_library(pycbufstatic STATIC pycbuf.cpp CBufParserPy.cpp cbuf_reader_python.cpp)
+target_include_directories(pycbufstatic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pycbufstatic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+
+target_link_libraries(pycbufstatic Python3::Module cbuf_parse uloglib_static)
+
+target_compile_options(pycbufstatic PRIVATE -Wno-unused-function -Wno-reserved-identifier)

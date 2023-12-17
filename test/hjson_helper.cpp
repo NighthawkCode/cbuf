@@ -23,7 +23,7 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int8_t&
   if (o.type() == Hjson::Type::String) {
     val = int8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int8_t(o.operator char());
     return true;
   }
@@ -39,7 +39,7 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int16_t
   if (o.type() == Hjson::Type::String) {
     val = int16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int16_t(o);
     return true;
   }
@@ -55,7 +55,7 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int32_t
   if (o.type() == Hjson::Type::String) {
     val = std::atoi(o);
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int32_t(o);
     return true;
   }
@@ -71,7 +71,7 @@ bool get_member_int(const Hjson::Value& doc, const std::string& objName, int64_t
   if (o.type() == Hjson::Type::String) {
     val = std::atoll(o);
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int64_t(o);
     return true;
   }
@@ -87,7 +87,7 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint8_
   if (o.type() == Hjson::Type::String) {
     val = uint8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint8_t(o);
     return true;
   }
@@ -103,7 +103,7 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint16
   if (o.type() == Hjson::Type::String) {
     val = uint16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint16_t(o);
     return true;
   }
@@ -119,7 +119,7 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint32
   if (o.type() == Hjson::Type::String) {
     val = uint32_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint32_t(o);
     return true;
   }
@@ -135,7 +135,7 @@ bool get_member_uint(const Hjson::Value& doc, const std::string& objName, uint64
   if (o.type() == Hjson::Type::String) {
     val = uint64_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint64_t(o);
     return true;
   }
@@ -151,7 +151,7 @@ bool get_member_float(const Hjson::Value& doc, const std::string& objName, float
   if (o.type() == Hjson::Type::String) {
     val = float(std::atof(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = float(o);
     return true;
   }
@@ -167,7 +167,7 @@ bool get_member_double(const Hjson::Value& doc, const std::string& objName, doub
   if (o.type() == Hjson::Type::String) {
     val = std::atof(o);
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = o;
     return true;
   }
@@ -202,7 +202,7 @@ bool get_member_bool_relaxed(const Hjson::Value& doc, const std::string& objName
   } else if (o.type() == Hjson::Type::Bool) {
     val = o.operator bool();
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = !(std::floor(o.operator double()) == 0);
     return true;
   }
@@ -230,7 +230,7 @@ bool get_value_int(const Hjson::Value& o, int8_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = int8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int8_t(o.operator char());
     return true;
   }
@@ -245,7 +245,7 @@ bool get_value_int(const Hjson::Value& o, int16_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = int16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int16_t(o);
     return true;
   }
@@ -260,7 +260,7 @@ bool get_value_int(const Hjson::Value& o, int32_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = std::atoi(o);
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int32_t(o);
     return true;
   }
@@ -275,7 +275,7 @@ bool get_value_int(const Hjson::Value& o, int64_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = std::atoll(o);
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = int64_t(o);
     return true;
   }
@@ -290,7 +290,7 @@ bool get_value_uint(const Hjson::Value& o, uint8_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = uint8_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint8_t(o);
     return true;
   }
@@ -305,7 +305,7 @@ bool get_value_uint(const Hjson::Value& o, uint16_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = uint16_t(std::atoi(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint16_t(o);
     return true;
   }
@@ -320,7 +320,7 @@ bool get_value_uint(const Hjson::Value& o, uint32_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = uint32_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint32_t(o);
     return true;
   }
@@ -335,7 +335,7 @@ bool get_value_uint(const Hjson::Value& o, uint64_t& val) {
   if (o.type() == Hjson::Type::String) {
     val = uint64_t(std::atoll(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = uint64_t(o);
     return true;
   }
@@ -350,7 +350,7 @@ bool get_value_float(const Hjson::Value& o, float& val) {
   if (o.type() == Hjson::Type::String) {
     val = float(std::atof(o));
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = float(o);
     return true;
   }
@@ -365,7 +365,7 @@ bool get_value_double(const Hjson::Value& o, double& val) {
   if (o.type() == Hjson::Type::String) {
     val = std::atof(o);
     return true;
-  } else if (o.type() == Hjson::Type::Double) {
+  } else if (o.is_numeric()) {
     val = o;
     return true;
   }

@@ -182,18 +182,19 @@ void CPrinter::print_net(ast_struct* st) {
         } else {
           // We have to compute the size of each element one by one...
           if (elem->is_dynamic_array) {
-            buffer->print("uint32_t num_%s = uint32_t(%s.size());\n", elem->name, elem->name);
+            buffer->print("uint32_t num_%s_decoded = uint32_t(%s.size());\n", elem->name, elem->name);
             buffer->print("ret_size += sizeof(uint32_t); // Encode the length of the variable array %s\n",
                           elem->name);
-          } else if (elem->is_compact_array) {
-            // nothing to do here, num_<elem_name> already exists
+          } else if (elem->is_compact_array) {            
             buffer->print("ret_size += sizeof(uint32_t); // Encode the length of %s in the var num_%s\n",
                           elem->name, elem->name);
+            // Copy to a '_decoded' version of the variable to ensure we always have it
+            buffer->print("uint32_t num_%s_decoded = num_%s;\n", elem->name, elem->name);
           } else {
-            buffer->print("uint32_t num_%s = %" PRIu64 ";\n", elem->name, elem->array_suffix->size);
+            buffer->print("uint32_t num_%s_decoded = %" PRIu64 ";\n", elem->name, elem->array_suffix->size);
           }
           // No need to encode elements on the static array case, we know them already
-          buffer->print("for(int %s_index=0; %s_index < int(num_%s); %s_index++) {\n", elem->name, elem->name,
+          buffer->print("for(unsigned int %s_index=0; %s_index < num_%s_decoded; %s_index++) {\n", elem->name, elem->name,
                         elem->name, elem->name);
           buffer->increase_ident();
           buffer->print("ret_size += %s[size_t(%s_index)].encode_net_size();\n", elem->name, elem->name);
@@ -236,20 +237,20 @@ void CPrinter::print_net(ast_struct* st) {
   buffer->decrease_ident();
   buffer->print("}\n\n");
 
-  buffer->print("bool encode_net%s(char *data, unsigned int buf_size) const\n", naked_suffix);
+  buffer->print("bool encode_net%s(char *data_encoding, unsigned int buf_size) const\n", naked_suffix);
   buffer->print("{\n");
   buffer->increase_ident();
   if (!st->naked) {
     buffer->print("preamble.setSize(uint32_t(encode_net_size()));\n");
     buffer->print("if (buf_size < preamble.size()) return false;\n");
-    buffer->print("*reinterpret_cast<uint32_t *>(data) = CBUF_MAGIC;\n");
-    buffer->print("data += sizeof(uint32_t);\n");
-    buffer->print("*reinterpret_cast<uint32_t *>(data) = preamble.size_;\n");
-    buffer->print("data += sizeof(uint32_t);\n");
-    buffer->print("*reinterpret_cast<uint64_t *>(data) = preamble.hash;\n");
-    buffer->print("data += sizeof(uint64_t);\n");
-    buffer->print("*reinterpret_cast<double *>(data) = preamble.packet_timest;\n");
-    buffer->print("data += sizeof(double);\n");
+    buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = CBUF_MAGIC;\n");
+    buffer->print("data_encoding += sizeof(uint32_t);\n");
+    buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = preamble.size_;\n");
+    buffer->print("data_encoding += sizeof(uint32_t);\n");
+    buffer->print("*reinterpret_cast<uint64_t *>(data_encoding) = preamble.hash;\n");
+    buffer->print("data_encoding += sizeof(uint64_t);\n");
+    buffer->print("*reinterpret_cast<double *>(data_encoding) = preamble.packet_timest;\n");
+    buffer->print("data_encoding += sizeof(double);\n");
   }
   for (auto* elem : st->elements) {
     char custom_type[128];
@@ -263,22 +264,22 @@ void CPrinter::print_net(ast_struct* st) {
     if (elem->array_suffix) {
       if (simple_type(elem->type)) {
         if (elem->is_dynamic_array) {
-          buffer->print("*reinterpret_cast<uint32_t *>(data) = uint32_t(this->%s.size());\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
-          buffer->print("memcpy(data, &this->%s[0], this->%s.size()*sizeof(%s));\n", elem->name, elem->name,
+          buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = uint32_t(this->%s.size());\n", elem->name);
+          buffer->print("data_encoding += sizeof(uint32_t);\n");
+          buffer->print("memcpy(data_encoding, &this->%s[0], this->%s.size()*sizeof(%s));\n", elem->name, elem->name,
                         ElementTypeToStrC[elem->type]);
-          buffer->print("data += this->%s.size()*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
+          buffer->print("data_encoding += this->%s.size()*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
         } else if (elem->is_compact_array) {
-          buffer->print("*reinterpret_cast<uint32_t *>(data) = num_%s;\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
-          buffer->print("memcpy(data, &this->%s[0], num_%s*sizeof(%s));\n", elem->name, elem->name,
+          buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = num_%s;\n", elem->name);
+          buffer->print("data_encoding += sizeof(uint32_t);\n");
+          buffer->print("memcpy(data_encoding, &this->%s[0], num_%s*sizeof(%s));\n", elem->name, elem->name,
                         ElementTypeToStrC[elem->type]);
-          buffer->print("data += num_%s*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
+          buffer->print("data_encoding += num_%s*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
         } else {
           // normal static array
-          buffer->print("memcpy(data, this->%s, %d*sizeof(%s));\n", elem->name, (int)elem->array_suffix->size,
+          buffer->print("memcpy(data_encoding, this->%s, %d*sizeof(%s));\n", elem->name, (int)elem->array_suffix->size,
                         ElementTypeToStrC[elem->type]);
-          buffer->print("data += %d*sizeof(%s);\n", (int)elem->array_suffix->size,
+          buffer->print("data_encoding += %d*sizeof(%s);\n", (int)elem->array_suffix->size,
                         ElementTypeToStrC[elem->type]);
         }
       } else if (struct_type(elem, sym)) {
@@ -286,78 +287,79 @@ void CPrinter::print_net(ast_struct* st) {
         if (inner_st->simple && !inner_st->has_compact) {
           // if all the elements of inner_st have the same size
           if (elem->is_dynamic_array) {
-            buffer->print("*reinterpret_cast<uint32_t *>(data) = uint32_t(this->%s.size());\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
-            buffer->print("memcpy(data, &this->%s[0], %s.size()*this->%s[0].encode_net_size());\n",
+            buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = uint32_t(this->%s.size());\n", elem->name);
+            buffer->print("data_encoding += sizeof(uint32_t);\n");
+            buffer->print("memcpy(data_encoding, &this->%s[0], %s.size()*this->%s[0].encode_net_size());\n",
                           elem->name, elem->name, elem->name);
-            buffer->print("data += this->%s.size()*this->%s[0].encode_net_size();\n", elem->name, elem->name);
+            buffer->print("data_encoding += this->%s.size()*this->%s[0].encode_net_size();\n", elem->name, elem->name);
           } else if (elem->is_compact_array) {
-            buffer->print("*reinterpret_cast<uint32_t *>(data) = num_%s;\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
-            buffer->print("memcpy(data, &this->%s[0], num_%s*this->%s[0].encode_net_size());\n", elem->name,
+            buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = num_%s;\n", elem->name);
+            buffer->print("data_encoding += sizeof(uint32_t);\n");
+            buffer->print("memcpy(data_encoding, &this->%s[0], num_%s*this->%s[0].encode_net_size());\n", elem->name,
                           elem->name, elem->name);
-            buffer->print("data += num_%s*%s[0].encode_net_size();\n", elem->name, elem->name);
+            buffer->print("data_encoding += num_%s*%s[0].encode_net_size();\n", elem->name, elem->name);
           } else {
-            buffer->print("memcpy(data, this->%s, %d*this->%s[0].encode_net_size());\n", elem->name,
+            buffer->print("memcpy(data_encoding, this->%s, %d*this->%s[0].encode_net_size());\n", elem->name,
                           (int)elem->array_suffix->size, elem->name);
-            buffer->print("data += %d*this->%s[0].encode_net_size();\n", (int)elem->array_suffix->size,
+            buffer->print("data_encoding += %d*this->%s[0].encode_net_size();\n", (int)elem->array_suffix->size,
                           elem->name);
           }
         } else {
           if (elem->is_dynamic_array) {
-            buffer->print("uint32_t num_%s = uint32_t(this->%s.size());\n", elem->name, elem->name);
-            buffer->print("*reinterpret_cast<uint32_t *>(data) = num_%s;\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
+            buffer->print("uint32_t num_%s_encoded = uint32_t(this->%s.size());\n", elem->name, elem->name);
+            buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = num_%s_encoded;\n", elem->name);
+            buffer->print("data_encoding += sizeof(uint32_t);\n");
           } else if (elem->is_compact_array) {
-            buffer->print("*reinterpret_cast<uint32_t *>(data) = num_%s;\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
+            buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = num_%s;\n", elem->name);
+            buffer->print("data_encoding += sizeof(uint32_t);\n");
+            buffer->print("uint32_t num_%s_encoded = num_%s;\n", elem->name, elem->name);
           } else {
-            buffer->print("uint32_t num_%s = %" PRIu64 ";\n", elem->name, elem->array_suffix->size);
+            buffer->print("uint32_t num_%s_encoded = %" PRIu64 ";\n", elem->name, elem->array_suffix->size);
           }  // No need to encode the number of elements on the static array case, we know them already
-          buffer->print("for(size_t %s_index=0; %s_index < num_%s; %s_index++) {\n", elem->name, elem->name,
+          buffer->print("for(size_t %s_index=0; %s_index < num_%s_encoded; %s_index++) {\n", elem->name, elem->name,
                         elem->name, elem->name);
           buffer->increase_ident();
           buffer->print("auto& %s_elem = this->%s[%s_index];\n", elem->name, elem->name, elem->name);
-          buffer->print("%s_elem.encode_net%s(data, buf_size);\n", elem->name,
+          buffer->print("%s_elem.encode_net%s(data_encoding, buf_size);\n", elem->name,
                         inner_st->naked ? "_naked" : "");
-          buffer->print("data += %s_elem.encode_net_size();\n", elem->name);
+          buffer->print("data_encoding += %s_elem.encode_net_size();\n", elem->name);
           buffer->decrease_ident();
           buffer->print("}\n");
         }
       } else if (enum_type(elem, sym)) {
         if (elem->is_dynamic_array) {
-          buffer->print("*reinterpret_cast<uint32_t *>(data) = uint32_t(this->%s.size());\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
-          buffer->print("memcpy(data, &this->%s[0], this->%s.size()*sizeof(int32_t));\n", elem->name,
+          buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = uint32_t(this->%s.size());\n", elem->name);
+          buffer->print("data_encoding += sizeof(uint32_t);\n");
+          buffer->print("memcpy(data_encoding, &this->%s[0], this->%s.size()*sizeof(int32_t));\n", elem->name,
                         elem->name);
-          buffer->print("data += this->%s.size()*sizeof(int32_t);\n", elem->name);
+          buffer->print("data_encoding += this->%s.size()*sizeof(int32_t);\n", elem->name);
         } else if (elem->is_compact_array) {
-          buffer->print("*reinterpret_cast<uint32_t *>(data) = num_%s;\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
-          buffer->print("memcpy(data, &this->%s[0], num_%s*sizeof(int32_t));\n", elem->name, elem->name);
-          buffer->print("data += num_%s*sizeof(int32_t);\n", elem->name);
+          buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = num_%s;\n", elem->name);
+          buffer->print("data_encoding += sizeof(uint32_t);\n");
+          buffer->print("memcpy(data_encoding, &this->%s[0], num_%s*sizeof(int32_t));\n", elem->name, elem->name);
+          buffer->print("data_encoding += num_%s*sizeof(int32_t);\n", elem->name);
         } else {
-          buffer->print("memcpy(data, this->%s, %d*sizeof(int32_t));\n", elem->name,
+          buffer->print("memcpy(data_encoding, this->%s, %d*sizeof(int32_t));\n", elem->name,
                         (int)elem->array_suffix->size);
-          buffer->print("data += %d*sizeof(int32_t);\n", (int)elem->array_suffix->size);
+          buffer->print("data_encoding += %d*sizeof(int32_t);\n", (int)elem->array_suffix->size);
         }
       } else if (elem->type == TYPE_CUSTOM) {
         if (elem->is_dynamic_array) {
-          buffer->print("*reinterpret_cast<uint32_t *>(data) = uint32_t(this->%s.size());\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
-          buffer->print("memcpy(data, &this->%s[0], this->%s.size()*sizeof(%s));\n", elem->name, elem->name,
+          buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = uint32_t(this->%s.size());\n", elem->name);
+          buffer->print("data_encoding += sizeof(uint32_t);\n");
+          buffer->print("memcpy(data_encoding, &this->%s[0], this->%s.size()*sizeof(%s));\n", elem->name, elem->name,
                         custom_type);
-          buffer->print("data += this->%s.size()*sizeof(%s);\n", elem->name, custom_type);
+          buffer->print("data_encoding += this->%s.size()*sizeof(%s);\n", elem->name, custom_type);
         } else if (elem->is_compact_array) {
-          buffer->print("*reinterpret_cast<uint32_t *>(data) = num_%s;\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
-          buffer->print("memcpy(data, &this->%s[0], num_%s*sizeof(%s));\n", elem->name, elem->name,
+          buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = num_%s;\n", elem->name);
+          buffer->print("data_encoding += sizeof(uint32_t);\n");
+          buffer->print("memcpy(data_encoding, &this->%s[0], num_%s*sizeof(%s));\n", elem->name, elem->name,
                         custom_type);
-          buffer->print("data += num_%s*sizeof(%s);\n", elem->name, custom_type);
+          buffer->print("data_encoding += num_%s*sizeof(%s);\n", elem->name, custom_type);
         } else {
-          buffer->print("memcpy(data, this->%s, %d*sizeof(int32_t));\n", elem->name,
+          buffer->print("memcpy(data_encoding, this->%s, %d*sizeof(int32_t));\n", elem->name,
                         (int)elem->array_suffix->size);
-          buffer->print("data += %d*sizeof(int32_t);\n", (int)elem->array_suffix->size);
+          buffer->print("data_encoding += %d*sizeof(int32_t);\n", (int)elem->array_suffix->size);
         }
         buffer->print("ret_size += sizeof(this->%s); // for %s\n", custom_type, elem->name);
       } else {
@@ -365,37 +367,37 @@ void CPrinter::print_net(ast_struct* st) {
         assert(elem->is_compact_array == false);
 
         if (elem->is_dynamic_array) {
-          buffer->print("*reinterpret_cast<uint32_t *>(data) = uint32_t(this->%s.size());\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
+          buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = uint32_t(this->%s.size());\n", elem->name);
+          buffer->print("data_encoding += sizeof(uint32_t);\n");
         }  // No need to encode elements on the static array case, we know them already
         buffer->print("for(auto &%s_elem: %s) {\n", elem->name, elem->name);
         buffer->increase_ident();
-        buffer->print("*reinterpret_cast<uint32_t *>(data) = uint32_t(%s_elem.length());\n", elem->name);
-        buffer->print("data += sizeof(uint32_t);\n");
-        buffer->print("memcpy(data, %s_elem.c_str(), %s_elem.length());\n", elem->name, elem->name);
-        buffer->print("data += %s_elem.length();\n", elem->name);
+        buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = uint32_t(%s_elem.length());\n", elem->name);
+        buffer->print("data_encoding += sizeof(uint32_t);\n");
+        buffer->print("memcpy(data_encoding, %s_elem.c_str(), %s_elem.length());\n", elem->name, elem->name);
+        buffer->print("data_encoding += %s_elem.length();\n", elem->name);
         buffer->decrease_ident();
         buffer->print("}\n");
       }
     } else if (struct_type(elem, sym)) {
       auto* inner_st = sym->find_struct(elem);
-      buffer->print("%s.encode_net%s(data, buf_size);\n", elem->name, inner_st->naked ? "_naked" : "");
-      buffer->print("data += %s.encode_net_size();\n", elem->name);
+      buffer->print("%s.encode_net%s(data_encoding, buf_size);\n", elem->name, inner_st->naked ? "_naked" : "");
+      buffer->print("data_encoding += %s.encode_net_size();\n", elem->name);
     } else if (enum_type(elem, sym)) {
       // this is an enum, treat it as an s32;
-      buffer->print("*reinterpret_cast<int32_t *>(data) = int32_t(this->%s);\n", elem->name);
-      buffer->print("data += sizeof(int32_t);\n");
+      buffer->print("*reinterpret_cast<int32_t *>(data_encoding) = int32_t(this->%s);\n", elem->name);
+      buffer->print("data_encoding += sizeof(int32_t);\n");
     } else if (elem->type == TYPE_STRING) {
-      buffer->print("*reinterpret_cast<uint32_t *>(data) = uint32_t(this->%s.length());\n", elem->name);
-      buffer->print("data += sizeof(uint32_t);\n");
-      buffer->print("memcpy(data, this->%s.c_str(), this->%s.length());\n", elem->name, elem->name);
-      buffer->print("data += this->%s.length();\n", elem->name);
+      buffer->print("*reinterpret_cast<uint32_t *>(data_encoding) = uint32_t(this->%s.length());\n", elem->name);
+      buffer->print("data_encoding += sizeof(uint32_t);\n");
+      buffer->print("memcpy(data_encoding, this->%s.c_str(), this->%s.length());\n", elem->name, elem->name);
+      buffer->print("data_encoding += this->%s.length();\n", elem->name);
     } else if (elem->type == TYPE_CUSTOM) {
-      buffer->print("*reinterpret_cast<%s *>(data) = this->%s;\n", custom_type, elem->name);
-      buffer->print("data += sizeof(%s);\n", custom_type);
+      buffer->print("*reinterpret_cast<%s *>(data_encoding) = this->%s;\n", custom_type, elem->name);
+      buffer->print("data_encoding += sizeof(%s);\n", custom_type);
     } else {
-      buffer->print("*reinterpret_cast<%s *>(data) = this->%s;\n", ElementTypeToStrC[elem->type], elem->name);
-      buffer->print("data += sizeof(%s);\n", ElementTypeToStrC[elem->type]);
+      buffer->print("*reinterpret_cast<%s *>(data_encoding) = this->%s;\n", ElementTypeToStrC[elem->type], elem->name);
+      buffer->print("data_encoding += sizeof(%s);\n", ElementTypeToStrC[elem->type]);
     }
   }
   buffer->print("\n");
@@ -403,23 +405,23 @@ void CPrinter::print_net(ast_struct* st) {
   buffer->decrease_ident();
   buffer->print("}\n\n");
 
-  buffer->print("bool decode_net%s(char *data, unsigned int buf_size)\n", naked_suffix);
+  buffer->print("bool decode_net%s(char *data_decoding, unsigned int buf_size)\n", naked_suffix);
   buffer->print("{\n");
   buffer->increase_ident();
   if (!st->naked) {
-    buffer->print("uint32_t magic = *reinterpret_cast<uint32_t *>(data);\n");
+    buffer->print("uint32_t magic = *reinterpret_cast<uint32_t *>(data_decoding);\n");
     buffer->print("if (magic != CBUF_MAGIC) CBUF_RETURN_FALSE();\n");
     buffer->print("preamble.magic = magic;\n");
-    buffer->print("data += sizeof(uint32_t);\n");
-    buffer->print("uint32_t dec_size = *reinterpret_cast<uint32_t *>(data);\n");
+    buffer->print("data_decoding += sizeof(uint32_t);\n");
+    buffer->print("uint32_t dec_size = *reinterpret_cast<uint32_t *>(data_decoding);\n");
     buffer->print("preamble.size_ = dec_size;\n");
     buffer->print("if (preamble.size() > buf_size) CBUF_RETURN_FALSE();\n");
-    buffer->print("data += sizeof(uint32_t);\n");
-    buffer->print("uint64_t buf_hash = *reinterpret_cast<uint64_t *>(data);\n");
+    buffer->print("data_decoding += sizeof(uint32_t);\n");
+    buffer->print("uint64_t buf_hash = *reinterpret_cast<uint64_t *>(data_decoding);\n");
     buffer->print("if (buf_hash != TYPE_HASH) CBUF_RETURN_FALSE();\n");
-    buffer->print("data += sizeof(uint64_t);\n");
-    buffer->print("preamble.packet_timest = *reinterpret_cast<double *>(data);\n");
-    buffer->print("data += sizeof(double);\n");
+    buffer->print("data_decoding += sizeof(uint64_t);\n");
+    buffer->print("preamble.packet_timest = *reinterpret_cast<double *>(data_decoding);\n");
+    buffer->print("data_decoding += sizeof(double);\n");
   }
 
   for (auto* elem : st->elements) {
@@ -434,125 +436,126 @@ void CPrinter::print_net(ast_struct* st) {
     if (elem->array_suffix) {
       if (simple_type(elem->type)) {
         if (elem->is_dynamic_array) {
-          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
+          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+          buffer->print("data_decoding += sizeof(uint32_t);\n");
           buffer->print("this->%s.resize(%s_count);\n", elem->name, elem->name);
-          buffer->print("memcpy(&this->%s[0], data, %s_count*sizeof(%s));\n", elem->name, elem->name,
+          buffer->print("memcpy(&this->%s[0], data_decoding, %s_count*sizeof(%s));\n", elem->name, elem->name,
                         ElementTypeToStrC[elem->type]);
-          buffer->print("data += %s_count*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
+          buffer->print("data_decoding += %s_count*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
         } else if (elem->is_compact_array) {
-          buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
+          buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+          buffer->print("data_decoding += sizeof(uint32_t);\n");
           buffer->print("if (num_%s > sizeof(this->%s)/sizeof(%s)) CBUF_RETURN_FALSE();\n", elem->name,
                         elem->name, ElementTypeToStrC[elem->type]);
-          buffer->print("memcpy(this->%s, data, num_%s*sizeof(%s));\n", elem->name, elem->name,
+          buffer->print("memcpy(this->%s, data_decoding, num_%s*sizeof(%s));\n", elem->name, elem->name,
                         ElementTypeToStrC[elem->type]);
-          buffer->print("data += num_%s*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
+          buffer->print("data_decoding += num_%s*sizeof(%s);\n", elem->name, ElementTypeToStrC[elem->type]);
         } else {
-          buffer->print("memcpy(this->%s, data, %d*sizeof(%s));\n", elem->name, (int)elem->array_suffix->size,
+          buffer->print("memcpy(this->%s, data_decoding, %d*sizeof(%s));\n", elem->name, (int)elem->array_suffix->size,
                         ElementTypeToStrC[elem->type]);
-          buffer->print("data += %d*sizeof(%s);\n", (int)elem->array_suffix->size,
+          buffer->print("data_decoding += %d*sizeof(%s);\n", (int)elem->array_suffix->size,
                         ElementTypeToStrC[elem->type]);
         }
       } else if (struct_type(elem, sym)) {
         auto* inner_st = sym->find_struct(elem);
         if (inner_st->simple && !inner_st->has_compact) {
           if (elem->is_dynamic_array) {
-            buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
+            buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+            buffer->print("data_decoding += sizeof(uint32_t);\n");
             buffer->print("this->%s.resize(%s_count);\n", elem->name, elem->name);
             buffer->print("for(uint32_t i=0; i<%s_count; i++) {\n", elem->name);
             buffer->increase_ident();
-            buffer->print("if (!this->%s[i].decode_net%s(data, buf_size)) CBUF_RETURN_FALSE();\n", elem->name,
+            buffer->print("if (!this->%s[i].decode_net%s(data_decoding, buf_size)) CBUF_RETURN_FALSE();\n", elem->name,
                           inner_st->naked ? "_naked" : "");
             if (inner_st->naked) {
-              buffer->print("data += this->%s[i].encode_net_size();\n", elem->name);
+              buffer->print("data_decoding += this->%s[i].encode_net_size();\n", elem->name);
             } else {
-              buffer->print("data += this->%s[i].preamble.size();\n", elem->name);
+              buffer->print("data_decoding += this->%s[i].preamble.size();\n", elem->name);
             }
             buffer->decrease_ident();
             buffer->print("}\n");
           } else if (elem->is_compact_array) {
             // @warning: if the substruct has compact arrays too, this won't work
             // since each element can have a different size
-            buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
-            buffer->print("memcpy(this->%s, data, num_%s*this->%s[0].encode_net_size());\n", elem->name,
+            buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+            buffer->print("data_decoding += sizeof(uint32_t);\n");
+            buffer->print("memcpy(this->%s, data_decoding, num_%s*this->%s[0].encode_net_size());\n", elem->name,
                           elem->name, elem->name);
-            buffer->print("data += num_%s*this->%s[0].encode_net_size();\n", elem->name, elem->name);
+            buffer->print("data_decoding += num_%s*this->%s[0].encode_net_size();\n", elem->name, elem->name);
           } else {
-            buffer->print("memcpy(this->%s, data, %d*this->%s[0].encode_net_size());\n", elem->name,
+            buffer->print("memcpy(this->%s, data_decoding, %d*this->%s[0].encode_net_size());\n", elem->name,
                           (int)elem->array_suffix->size, elem->name);
-            buffer->print("data += %d*this->%s[0].encode_net_size();\n", (int)elem->array_suffix->size,
+            buffer->print("data_decoding += %d*this->%s[0].encode_net_size();\n", (int)elem->array_suffix->size,
                           elem->name);
           }
         } else {
           if (elem->is_dynamic_array) {
-            buffer->print("uint32_t num_%s = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
-            buffer->print("this->%s.resize(num_%s);\n", elem->name, elem->name);
+            buffer->print("uint32_t num_%s_decoded = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+            buffer->print("data_decoding += sizeof(uint32_t);\n");
+            buffer->print("this->%s.resize(num_%s_decoded);\n", elem->name, elem->name);
           } else if (elem->is_compact_array) {
-            buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-            buffer->print("data += sizeof(uint32_t);\n");
+            buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+            buffer->print("data_decoding += sizeof(uint32_t);\n");
+            buffer->print("uint32_t num_%s_decoded = num_%s;\n", elem->name, elem->name);
           } else {  // No need to decode the number of elements on the static array case, we know them already
-            buffer->print("uint32_t num_%s = %" PRIu64 ";\n", elem->name, elem->array_suffix->size);
+            buffer->print("uint32_t num_%s_decoded = %" PRIu64 ";\n", elem->name, elem->array_suffix->size);
           }
-          buffer->print("for(uint32_t i=0; i<num_%s; i++) {\n", elem->name);
+          buffer->print("for(uint32_t i=0; i<num_%s_decoded; i++) {\n", elem->name);
           buffer->increase_ident();
-          buffer->print("if (!this->%s[i].decode_net%s(data, buf_size)) CBUF_RETURN_FALSE();\n", elem->name,
+          buffer->print("if (!this->%s[i].decode_net%s(data_decoding, buf_size)) CBUF_RETURN_FALSE();\n", elem->name,
                         inner_st->naked ? "_naked" : "");
           if (inner_st->naked) {
-            buffer->print("data += this->%s[i].encode_net_size();\n", elem->name);
+            buffer->print("data_decoding += this->%s[i].encode_net_size();\n", elem->name);
           } else {
-            buffer->print("data += this->%s[i].preamble.size();\n", elem->name);
+            buffer->print("data_decoding += this->%s[i].preamble.size();\n", elem->name);
           }
           buffer->decrease_ident();
           buffer->print("}\n");
         }
       } else if (enum_type(elem, sym)) {
         if (elem->is_dynamic_array) {
-          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
+          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+          buffer->print("data_decoding += sizeof(uint32_t);\n");
           buffer->print("this->%s.resize(%s_count);\n", elem->name, elem->name);
           buffer->print("for(uint32_t i=0; i<%s_count; i++) {\n", elem->name);
           buffer->increase_ident();
-          buffer->print("this->%s[i] = *reinterpret_cast<%s *>(data);\n", elem->name, custom_type);
-          buffer->print("data += sizeof(int32_t);\n");
+          buffer->print("this->%s[i] = *reinterpret_cast<%s *>(data_decoding);\n", elem->name, custom_type);
+          buffer->print("data_decoding += sizeof(int32_t);\n");
           buffer->decrease_ident();
           buffer->print("}\n");
         } else if (elem->is_compact_array) {
-          buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
+          buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+          buffer->print("data_decoding += sizeof(uint32_t);\n");
           buffer->print("if (num_%s > sizeof(this->%s)/sizeof(int32_t)) CBUF_RETURN_FALSE();\n", elem->name,
                         elem->name);
-          buffer->print("memcpy(this->%s, data, num_%s*sizeof(int32_t));\n", elem->name, elem->name);
-          buffer->print("data += num_%s*sizeof(int32_t);\n", elem->name);
+          buffer->print("memcpy(this->%s, data_decoding, num_%s*sizeof(int32_t));\n", elem->name, elem->name);
+          buffer->print("data_decoding += num_%s*sizeof(int32_t);\n", elem->name);
         } else {
-          buffer->print("memcpy(this->%s, data, %d*sizeof(int32_t));\n", elem->name,
+          buffer->print("memcpy(this->%s, data_decoding, %d*sizeof(int32_t));\n", elem->name,
                         (int)elem->array_suffix->size);
-          buffer->print("data += %" PRIu64 "*sizeof(int32_t);\n", elem->array_suffix->size);
+          buffer->print("data_decoding += %" PRIu64 "*sizeof(int32_t);\n", elem->array_suffix->size);
         }
       } else if (elem->type == TYPE_CUSTOM) {
         if (elem->is_dynamic_array) {
-          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
+          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+          buffer->print("data_decoding += sizeof(uint32_t);\n");
           buffer->print("this->%s.resize(%s_count);\n", elem->name, elem->name);
           buffer->print("for(uint32_t i=0; i<%s_count; i++) {\n", elem->name);
           buffer->increase_ident();
-          buffer->print("if (!this->%s[i].decode_net(data, buf_size)) CBUF_RETURN_FALSE();\n", elem->name);
-          buffer->print("data += this->%s[i].preamble.size();\n", elem->name);
+          buffer->print("if (!this->%s[i].decode_net(data_decoding, buf_size)) CBUF_RETURN_FALSE();\n", elem->name);
+          buffer->print("data_decoding += this->%s[i].preamble.size();\n", elem->name);
           buffer->decrease_ident();
           buffer->print("}\n");
         } else if (elem->is_compact_array) {
-          buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
-          buffer->print("memcpy(this->%s, data, num_%s*this->%s[0].encode_net_size());\n", elem->name,
+          buffer->print("num_%s = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+          buffer->print("data_decoding += sizeof(uint32_t);\n");
+          buffer->print("memcpy(this->%s, data_decoding, num_%s*this->%s[0].encode_net_size());\n", elem->name,
                         elem->name, elem->name);
-          buffer->print("data += num_%s*this->%s[0].encode_net_size();\n", elem->name, elem->name);
+          buffer->print("data_decoding += num_%s*this->%s[0].encode_net_size();\n", elem->name, elem->name);
         } else {  // @warning: what happens here when the encode net size is not the same on each elem?
-          buffer->print("memcpy(this->%s, data, %d*this->%s[0].encode_net_size());\n", elem->name,
+          buffer->print("memcpy(this->%s, data_decoding, %d*this->%s[0].encode_net_size());\n", elem->name,
                         (int)elem->array_suffix->size, elem->name);
-          buffer->print("data += %" PRIu64 "*this->%s[0].encode_net_size();\n", elem->array_suffix->size,
+          buffer->print("data_decoding += %" PRIu64 "*this->%s[0].encode_net_size();\n", elem->array_suffix->size,
                         elem->name);
         }
       } else {
@@ -560,44 +563,44 @@ void CPrinter::print_net(ast_struct* st) {
         assert(elem->is_compact_array == false);  // not supported yet
 
         if (elem->is_dynamic_array) {
-          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-          buffer->print("data += sizeof(uint32_t);\n");
+          buffer->print("uint32_t %s_count = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+          buffer->print("data_decoding += sizeof(uint32_t);\n");
           buffer->print("this->%s.resize(%s_count);\n", elem->name, elem->name);
           buffer->print("for(uint32_t i=0; i<%s_count; i++) {\n", elem->name);
         } else {
           buffer->print("for(uint32_t i=0; i<%d; i++) {\n", (int)elem->array_suffix->size);
         }
         buffer->increase_ident();
-        buffer->print("uint32_t %s_length = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-        buffer->print("data += sizeof(uint32_t);\n");
-        buffer->print("this->%s[i].assign(data, %s_length);\n", elem->name, elem->name);
-        buffer->print("data += %s_length;\n", elem->name);
+        buffer->print("uint32_t %s_length = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+        buffer->print("data_decoding += sizeof(uint32_t);\n");
+        buffer->print("this->%s[i].assign(data_decoding, %s_length);\n", elem->name, elem->name);
+        buffer->print("data_decoding += %s_length;\n", elem->name);
         buffer->decrease_ident();
         buffer->print("}\n");
       }
     } else if (struct_type(elem, sym)) {
       auto* inner_st = sym->find_struct(elem);
-      buffer->print("if (!this->%s.decode_net%s(data, buf_size)) CBUF_RETURN_FALSE();\n", elem->name,
+      buffer->print("if (!this->%s.decode_net%s(data_decoding, buf_size)) CBUF_RETURN_FALSE();\n", elem->name,
                     inner_st->naked ? "_naked" : "");
       if (inner_st->naked) {
-        buffer->print("data += this->%s.encode_net_size();\n", elem->name);
+        buffer->print("data_decoding += this->%s.encode_net_size();\n", elem->name);
       } else {
-        buffer->print("data += this->%s.preamble.size();\n", elem->name);
+        buffer->print("data_decoding += this->%s.preamble.size();\n", elem->name);
       }
     } else if (enum_type(elem, sym)) {
-      buffer->print("this->%s = *reinterpret_cast<%s *>(data);\n", elem->name, custom_type);
-      buffer->print("data += sizeof(int32_t);\n");
+      buffer->print("this->%s = *reinterpret_cast<%s *>(data_decoding);\n", elem->name, custom_type);
+      buffer->print("data_decoding += sizeof(int32_t);\n");
     } else if (elem->type == TYPE_STRING) {
-      buffer->print("uint32_t %s_length = *reinterpret_cast<uint32_t *>(data);\n", elem->name);
-      buffer->print("data += sizeof(uint32_t);\n");
-      buffer->print("this->%s.assign(data, %s_length);\n", elem->name, elem->name);
-      buffer->print("data += %s_length;\n", elem->name);
+      buffer->print("uint32_t %s_length = *reinterpret_cast<uint32_t *>(data_decoding);\n", elem->name);
+      buffer->print("data_decoding += sizeof(uint32_t);\n");
+      buffer->print("this->%s.assign(data_decoding, %s_length);\n", elem->name, elem->name);
+      buffer->print("data_decoding += %s_length;\n", elem->name);
     } else if (elem->type == TYPE_CUSTOM) {
-      buffer->print("this->%s = *reinterpret_cast<%s *>(data);\n", elem->name, custom_type);
-      buffer->print("data += sizeof(%s);\n", custom_type);
+      buffer->print("this->%s = *reinterpret_cast<%s *>(data_decoding);\n", elem->name, custom_type);
+      buffer->print("data_decoding += sizeof(%s);\n", custom_type);
     } else {
-      buffer->print("this->%s = *reinterpret_cast<%s *>(data);\n", elem->name, ElementTypeToStrC[elem->type]);
-      buffer->print("data += sizeof(%s);\n", ElementTypeToStrC[elem->type]);
+      buffer->print("this->%s = *reinterpret_cast<%s *>(data_decoding);\n", elem->name, ElementTypeToStrC[elem->type]);
+      buffer->print("data_decoding += sizeof(%s);\n", ElementTypeToStrC[elem->type]);
     }
   }
   buffer->print("\n");
@@ -691,11 +694,11 @@ void CPrinter::print(ast_struct* st) {
     buffer->decrease_ident();
     buffer->print("}\n\n");
     buffer->print("void free_encode(const char *) const {}\n\n");
-    buffer->print("bool encode%s(char *data, unsigned int buf_size) const\n", naked_suffix);
+    buffer->print("bool encode%s(char *data_encoding, unsigned int buf_size) const\n", naked_suffix);
     buffer->print("{\n");
     buffer->increase_ident();
     buffer->print("if (buf_size < sizeof(%s)) return false;\n", st->name);
-    buffer->print("memcpy(data, this, sizeof(*this));\n");
+    buffer->print("memcpy(data_encoding, this, sizeof(*this));\n");
     buffer->print("return true;\n");
     buffer->decrease_ident();
     buffer->print("}\n\n");
@@ -706,28 +709,28 @@ void CPrinter::print(ast_struct* st) {
     buffer->print("return reinterpret_cast<const char *>(this);\n");
     buffer->decrease_ident();
     buffer->print("}\n\n");
-    buffer->print("bool decode%s(char *data, unsigned int buf_size)\n", naked_suffix);
+    buffer->print("bool decode%s(char *data_decoding, unsigned int buf_size)\n", naked_suffix);
     buffer->print("{\n");
     buffer->increase_ident();
     buffer->print("if (buf_size < sizeof(%s)) return false;\n", st->name);
     if (!st->naked) {
-      buffer->print("cbuf_preamble *pre = reinterpret_cast<cbuf_preamble *>(data);\n");
+      buffer->print("cbuf_preamble *pre = reinterpret_cast<cbuf_preamble *>(data_decoding);\n");
       buffer->print("if (pre->hash != TYPE_HASH) return false;\n");
     }
-    buffer->print("memcpy(this, data, sizeof(*this));\n");
+    buffer->print("memcpy(this, data_decoding, sizeof(*this));\n");
     buffer->print("return true;\n");
     buffer->decrease_ident();
     buffer->print("}\n\n");
-    buffer->print("static bool decode%s(char *data, unsigned int buf_size, %s** var)\n", naked_suffix,
+    buffer->print("static bool decode%s(char *data_decoding, unsigned int buf_size, %s** var)\n", naked_suffix,
                   st->name);
     buffer->print("{\n");
     buffer->increase_ident();
     buffer->print("if (buf_size < sizeof(%s)) return false;\n", st->name);
     if (!st->naked) {
-      buffer->print("cbuf_preamble *pre = reinterpret_cast<cbuf_preamble *>(data);\n");
+      buffer->print("cbuf_preamble *pre = reinterpret_cast<cbuf_preamble *>(data_decoding);\n");
       buffer->print("if (pre->hash != TYPE_HASH) return false;\n");
     }
-    buffer->print("*var = reinterpret_cast<%s *>(data);\n", st->name);
+    buffer->print("*var = reinterpret_cast<%s *>(data_decoding);\n", st->name);
     buffer->print("return true;\n");
     buffer->decrease_ident();
     buffer->print("}\n\n");
@@ -747,10 +750,10 @@ void CPrinter::print(ast_struct* st) {
     buffer->decrease_ident();
     buffer->print("}\n\n");
 
-    buffer->print("bool encode%s(char *data, unsigned int buf_size) const\n", naked_suffix);
+    buffer->print("bool encode%s(char *data_encoding, unsigned int buf_size) const\n", naked_suffix);
     buffer->print("{\n");
     buffer->increase_ident();
-    buffer->print("return encode_net%s(data, buf_size);\n", naked_suffix);
+    buffer->print("return encode_net%s(data_encoding, buf_size);\n", naked_suffix);
     buffer->decrease_ident();
     buffer->print("}\n\n");
 
@@ -761,16 +764,16 @@ void CPrinter::print(ast_struct* st) {
     if (!st->naked) {
       buffer->print("preamble.setSize(uint32_t(gen_struct_size));\n");
     }
-    buffer->print("char *data = reinterpret_cast<char *>(malloc(gen_struct_size));\n");
-    buffer->print("encode%s(data, gen_struct_size);\n", naked_suffix);
-    buffer->print("return data;\n");
+    buffer->print("char *data_encoding = reinterpret_cast<char *>(malloc(gen_struct_size));\n");
+    buffer->print("encode%s(data_encoding, uint32_t(gen_struct_size));\n", naked_suffix);
+    buffer->print("return data_encoding;\n");
     buffer->decrease_ident();
     buffer->print("}\n\n");
 
-    buffer->print("bool decode%s(char *data, unsigned int buf_size)\n", naked_suffix);
+    buffer->print("bool decode%s(char *data_decoding, unsigned int buf_size)\n", naked_suffix);
     buffer->print("{\n");
     buffer->increase_ident();
-    buffer->print("return decode_net%s(data, buf_size);\n", naked_suffix);
+    buffer->print("return decode_net%s(data_decoding, buf_size);\n", naked_suffix);
     buffer->decrease_ident();
     buffer->print("}\n\n");
 

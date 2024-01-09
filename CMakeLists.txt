@@ -40,7 +40,6 @@ else()
     -Werror \
     -Wall \
     -Wextra \
-    -Weverything \
     -Werror=return-type \
     -Wno-unknown-warning-option \
     -Wno-c++98-compat \
